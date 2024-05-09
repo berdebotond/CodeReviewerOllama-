@@ -36,7 +36,7 @@ def parse_json_from_ai_response(response: str) -> dict:
     return json_response
 
 
-def ollama_chat(messages: list, json_example: str = None, try_outs: int = 5) -> dict:
+def ollama_chat(messages: list, system_prompt: str = None, try_outs: int = 5) -> dict:
     """
     This function sends a chat request to the Ollama API, appends a system message to the chat messages,
     and then parses the response into a JSON format. If the response contains a 'message' key, the function
@@ -45,19 +45,27 @@ def ollama_chat(messages: list, json_example: str = None, try_outs: int = 5) -> 
     raises a ValueError. The function also handles cases where the Ollama API fails to generate a JSON response
     after a certain number of attempts.
 
-    :param json_example: json example for the model to answer the question in the json format
+    :param system_prompt: json example for the model to answer the question in the json format
     :param messages: Messages with human and assistant messages
     :return: A dictionary containing the parsed JSON response from the Ollama chat
     :raises ValueError: If the response does not contain a valid JSON or if Ollama couldn't generate a JSON
+
+    Args:
+        try_outs:
     """
     client = Client(host='http://localhost:11434')
-    messages.append({'role': 'system', 'content': f'Answer in the following json format {json_example}'})
+    messages.append({'role': 'system', 'content': system_prompt})
     try_out_index = 0
     while try_outs >= try_out_index:
         try:
-            resp = client.chat(model=cfg.ollama_model, messages=messages, stream=False)
+            resp = client.chat(model=cfg.ollama_model, messages=messages, stream=False, format='json')
             if "message" in resp:
-                json_resp = parse_json_from_ai_response(resp["message"]["content"])
+                try:
+                    loguru.logger.debug(f"Response: {resp["message"]["content"]}")
+                    json_resp = json.loads(resp["message"]["content"])
+                except json.decoder.JSONDecodeError as e:
+                    loguru.logger.warning(f"Invalid JSON response {e}")
+                    json_resp = parse_json_from_ai_response(resp["message"]["content"])
                 return json_resp
             else:
                 loguru.logger.warning("No 'message' key found in the response")

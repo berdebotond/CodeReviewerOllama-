@@ -5,6 +5,8 @@ import shutil
 
 import loguru
 
+from modules.ollama_client.ollama_client import ollama_chat
+from modules.config.app_config import AppConfig as cfg
 
 class CodeReader:
     """
@@ -38,8 +40,10 @@ class CodeReader:
         self.github_url = github_url
         self.temp_dir = tempfile.mkdtemp()  # Securely creating a temporary directory
         self.code = {}
+        self.code_summery = {}
         self._clone_repo()
         self.__read_code()
+
 
     def _clone_repo(self):
         """
@@ -79,4 +83,20 @@ class CodeReader:
         """
         shutil.rmtree(self.temp_dir)
 
+    def get_code(self):
+        """
+        Returns the code dictionary containing the code files and their content.
+        Returns:
 
+        """
+        return self.code
+
+    def get_code_summery(self):
+        if self.code_summery:
+            return self.code_summery
+        for key, code in self.code.items():
+            messages = [{'role': 'user', 'content': f"{cfg.code_generator}: {code}"}]
+            code_result = ollama_chat(messages=messages, system_prompt=cfg.system_prompt)
+            self.code_summery[key] = code_result
+
+        return self.code_summery
