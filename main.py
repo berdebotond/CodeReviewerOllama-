@@ -1,13 +1,8 @@
+import uvicorn
 from modules.code_reader.code_reader import CodeReader
+from api import app
 
-
-def main():
-    code_reader = CodeReader("https://github.com/berdebotond/GoCineAPI")
-    code = code_reader.get_code()
-    code_summery = code_reader.get_code_summery()
-    print(code)
-    print(code_summery)
 
 
 if __name__ == '__main__':
-    main()
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
